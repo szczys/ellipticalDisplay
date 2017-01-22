@@ -13,7 +13,7 @@
 #include <avr/pgmspace.h>
 #include <util/delay.h>
 
-#define     BUFLEN      20
+#define     BUFLEN      4   //Message length plus terminating character?
 volatile uint8_t SShighFlag = 1;
 volatile uint8_t bufferIDX = 0;
 volatile uint8_t spiRxBuffer[BUFLEN] = { 0 };
@@ -87,7 +87,13 @@ int main(void)
 }
 
 ISR(SPI_STC_vect) {
-    SShighFlag = 0;
+    if (bufferIDX >= BUFLEN) {
+        //unexpected msg length; invalidate message
+        spiRxBuffer[0] = 0x00;
+        bufferIDX = 1;  //Prevent overflow
+    }
+
     spiRxBuffer[bufferIDX++] = SPDR;
-    //TODO: Handle buffer overflow condition
+
+    SShighFlag = 0;     //Flag used by main loop for transmission complete detection
 }
