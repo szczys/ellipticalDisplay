@@ -13,9 +13,10 @@
 #include <avr/pgmspace.h>
 #include <util/delay.h>
 
+#define     BUFLEN      20
 volatile uint8_t SShighFlag = 1;
 volatile uint8_t bufferIDX = 0;
-volatile uint8_t spiRxBuffer[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+volatile uint8_t spiRxBuffer[BUFLEN] = { 0 };
 
 /**************** Prototypes *************************************/
 void init_IO(void);
@@ -50,25 +51,38 @@ void init_interrupts(void) {
 
 int main(void)
 {
+    uint8_t validMsg[BUFLEN] = { 0 };
+    validMsg[0] = 0xA0;
+    
     init_IO();
     init_SPI();
     init_interrupts();
-    //_delay_ms(200);
-    //SPSR = 1<<SPIF;
     
     while(1)
     {
         if (SShighFlag == 0) {
             if (PINB & (1<<PB2)) {
-                //Interrupt routine set the flag low
-                //But SS is now high. Unset flag and reset buffer index
+                //Interrupt routine set the flag low but SS is now high (SPI complete)
+                //Let's validate message and get ready for next message
+                cli();      //clear interrupts so we don't overwrite message
+                
+                if (spiRxBuffer[0] == 0xA0) {
+                    //message valid. Copy to persistent array
+                    for (uint8_t i=0; i<BUFLEN; i++) {
+                        validMsg[i] = spiRxBuffer[i];
+                    }
+                }
+                //Get values ready for next message
                 SShighFlag == 1;
                 bufferIDX = 0;
+                
+                sei();      //enable interrupts
             }
         }
-        if (spiRxBuffer[1] == 0xF0) {
-            PORTB ^= 1<<PB1;
+        if (validMsg[1] == 0xF0) {
+            PORTB |= 1<<PB1;
         }
+        else { PORTB &= ~(1<<PB1); }
     }
 }
 
@@ -77,48 +91,3 @@ ISR(SPI_STC_vect) {
     spiRxBuffer[bufferIDX++] = SPDR;
     //TODO: Handle buffer overflow condition
 }
-
-/*
-ISR(PCINT0_vect) {
-    // Encoder service code is from Circuits@Home
-    // https://www.circuitsathome.com/mcu/rotary-encoder-interrupt-service-routine-for-avr-micros
-
-    static uint8_t old_AB = 3;  //lookup table index
-    static int8_t encval = 0;   //encoder value
-    static const int8_t enc_states [] PROGMEM = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};  //encoder lookup table
-
-    old_AB <<=2;  //remember previous state
-    old_AB |= ((ENC_RD>>6) & 0x03 ); //Shift magic to get PB6 and PB7 to LSB
-    encval += pgm_read_byte(&(enc_states[( old_AB & 0x0f )]));
-    // post "Navigation forward/reverse" event
-    if( encval < -3 ) {  //four steps forward
-        knobChange = -1;
-        encval = 0;
-    }
-    else if( encval > 3  ) {  //four steps backwards
-        knobChange = 1;
-        encval = 0;
-    }
-}
-
-ISR(TIMER0_OVF_vect) {
-    static unsigned char ct0, ct1;
-    unsigned char i;
-
-    TCNT0 = (unsigned char)(signed short)-(F_CPU / 1024 * 10e-3 + 0.5);   // preload for 10ms
-
-    i = key_state ^ ~BUT_PIN;    // key changed ?
-    ct0 = ~( ct0 & i );          // reset or count ct0
-    ct1 = ct0 ^ (ct1 & i);       // reset or count ct1
-    i &= ct0 & ct1;              // count until roll over ?
-    key_state ^= i;              // then toggle debounced state
-    key_press |= key_state & i;  // 0->1: key press detect
-    
-    static uint8_t delayCount = STD_DELAY/10;   //This is a red herring. delayCount should be exposed to game.c
-    
-    if (++timingDelay >= delayCount) {
-        timingDelay = 0;
-        ++move_tick;
-    }
-}
-*/
