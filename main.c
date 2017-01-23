@@ -18,15 +18,60 @@ volatile uint8_t SShighFlag = 1;
 volatile uint8_t bufferIDX = 0;
 volatile uint8_t spiRxBuffer[BUFLEN] = { 0 };
 
+#define     PORTB_MASK  (1<<PB0) | (1<<PB1) | (1<<PB6) | (1<<PB7)
+#define     PORTD_MASK  (1<<PD0) | (1<<PD1) | (1<<PD2) | (1<<PD3) | (1<<PD4) | (1<<PD5) | (1<<PD6) | (1<<PD7)
+#define     PORTC_MASK  (1<<PC0) | (1<<PC1) | (1<<PC2)
+
 /**************** Prototypes *************************************/
 void init_IO(void);
 void init_interrupts(void);
+void decodeDigit(uint8_t byteH, uint8_t byteL, uint8_t decPlace);
+void displaySegments(uint8_t decPlace, uint8_t decoded);
 int main(void);
 /**************** End Prototypes *********************************/
 
 void init_IO(void){
-    DDRB |= 1<<PB0 | 1<<PB1;
-    PORTB |= 1<<PB0 | 1<<PB1;
+    //7-Seg Displays
+    DDRB |= PORTB_MASK;
+    DDRC |= PORTC_MASK;
+    DDRD |= PORTD_MASK;
+    
+    PORTB |= PORTB_MASK;
+    PORTC |= PORTC_MASK;
+    PORTD |= PORTD_MASK;
+}
+
+void decodeDigit(uint8_t byteH, uint8_t byteL, uint8_t decPlace) {
+    uint8_t decoded = ((byteH & 0x07)<<5) | (byteL>>3);
+    displaySegments(decPlace, decoded);
+    //displaySegments(decPlace,0b11010011);
+}
+
+void displaySegments(uint8_t decPlace, uint8_t decoded) {
+    uint8_t outB = 0x00;
+    uint8_t outC = 0x00;
+    uint8_t outD = 0x00;
+    if (decPlace == 0) {
+      if (decoded & 1<<0) { outD |= 1<<PD6; } // 3 B 10
+      if (decoded & 1<<1) { outB |= 1<<PB7; } // 4 G 7
+      if (decoded & 1<<2) { outD |= 1<<PD5; } // 6 C 8
+      if (decoded & 1<<4) { outD |= 1<<PD7; } // 1 A 11
+      if (decoded & 1<<5) { outB |= 1<<PB0; } // 2 F 12
+      if (decoded & 1<<6) { outD |= 1<<PD4; } // 5 E 5
+      if (decoded & 1<<7) { outB |= 1<<PB6; } // 7 D 6
+    }
+    else if (decPlace == 1) {
+      if (decoded & 1<<0) { outB |= 1<<PB1; } // 3 B 15
+      if (decoded & 1<<1) { outC |= 1<<PC1; } // 4 G 17
+      if (decoded & 1<<2) { outD |= 1<<PD3; } // 6 C 3
+      if (decoded & 1<<4) { outC |= 1<<PC0; } // 1 A 16
+      if (decoded & 1<<5) { outC |= 1<<PC2; } // 2 F 18
+      if (decoded & 1<<6) { outD |= 1<<PD1; } // 5 E 1
+      if (decoded & 1<<7) { outD |= 1<<PD2; } // 7 D 2
+    }
+    PORTB = outB;
+    PORTC = outC;
+    PORTD = outD;
 }
 
 void init_SPI(void){
@@ -35,17 +80,12 @@ void init_SPI(void){
 }
 
 void init_interrupts(void) {
-    //Pin change interrupts for the rotary encoder
-    /*
-    PCICR |= 1<<PCIE0;      //enable PCINT0_vect  (PCINT0..7 pins)
-    PCMSK0 |= 1<<PCINT6;    //interrupt on PCINT6 pin
-    PCMSK0 |= 1<<PCINT7;    //interrupt on PCINT7 pin
-
-    //Timer overflow for debounce and systick
-    TCCR0B |= 1<<CS02 | 1<<CS00;		//Divide by 1024
-    TIMSK0 |= 1<<TOIE0;			//enable timer overflow interrupt
-    */
     sei();
+
+}
+
+void segOff(void) {
+    
 
 }
 
@@ -76,13 +116,19 @@ int main(void)
                 SShighFlag == 1;
                 bufferIDX = 0;
                 
+                
+                
                 sei();      //enable interrupts
             }
         }
+        
+        decodeDigit(validMsg[1], validMsg[2], 0);
+        /*
         if (validMsg[1] == 0xF0) {
             PORTB |= 1<<PB1;
         }
         else { PORTB &= ~(1<<PB1); }
+        */
     }
 }
 
