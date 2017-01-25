@@ -13,10 +13,14 @@
 #include <avr/pgmspace.h>
 #include <util/delay.h>
 
-#define     BUFLEN      4   //Message length plus terminating character?
+#define     BUFLEN      20   //Message length plus terminating character?
 volatile uint8_t SShighFlag = 1;
 volatile uint8_t bufferIDX = 0;
 volatile uint8_t spiRxBuffer[BUFLEN] = { 0 };
+
+uint8_t outB = 0x00;
+uint8_t outC = 0x00;
+uint8_t outD = 0x00;
 
 #define     PORTB_MASK  (1<<PB0) | (1<<PB1) | (1<<PB6) | (1<<PB7)
 #define     PORTD_MASK  (1<<PD0) | (1<<PD1) | (1<<PD2) | (1<<PD3) | (1<<PD4) | (1<<PD5) | (1<<PD6) | (1<<PD7)
@@ -48,9 +52,6 @@ void decodeDigit(uint8_t byteH, uint8_t byteL, uint8_t decPlace) {
 }
 
 void displaySegments(uint8_t decPlace, uint8_t decoded) {
-    uint8_t outB = 0x00;
-    uint8_t outC = 0x00;
-    uint8_t outD = 0x00;
     if (decPlace == 0) {
       if (decoded & 1<<0) { outD |= 1<<PD6; } // 3 B 10
       if (decoded & 1<<1) { outB |= 1<<PB7; } // 4 G 7
@@ -113,7 +114,7 @@ int main(void)
                     }
                 }
                 //Get values ready for next message
-                SShighFlag == 1;
+                SShighFlag = 1;
                 bufferIDX = 0;
                 
                 
@@ -122,7 +123,12 @@ int main(void)
             }
         }
         
-        decodeDigit(validMsg[1], validMsg[2], 0);
+        outB = 0;
+        outC = 0;
+        outD = 0;
+        
+        decodeDigit(validMsg[6], validMsg[7], 0);
+        decodeDigit(validMsg[5], validMsg[6], 1);
         /*
         if (validMsg[1] == 0xF0) {
             PORTB |= 1<<PB1;
