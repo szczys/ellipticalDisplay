@@ -163,12 +163,15 @@ def returnCharacter(byteH, byteL):
     else:
         return str(hex(dictValue[0])), str(hex(dictValue[1]))
 
-def showLargeDigitData():
-    #parses out the 4 digit places larges on the display
+def parseKnownData():
+    #parses out the known data from the display
     for line in sampleSet:
-        print line[5], line[6], line[7]
+        colon = ' '
+        if (int(line[07],16) & 0x40): colon = ':'
+        print line
         print returnCharacter(line[4],line[5]), \
 	      returnCharacter(line[5],line[6]), \
+	      colon, \
 	      returnCharacter(line[6],line[7]), \
 	      returnCharacter(line[7],line[8])
 
@@ -184,7 +187,8 @@ def filterOutKnown(samples=sampleSet):
         (4,0x07),(5,0xB8),  #Big minutes tens
         (5,0x07),(6,0xB8),  #Big minutes ones
         (6,0x07),(7,0xB8),  #Big seconds tens
-        (7,0x07),(8,0xB8)   #Big meconds ones
+        (7,0x07),(8,0xB8),  #Big meconds ones
+        (7,0x40)            #Time colon
         ]
         
 
