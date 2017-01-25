@@ -125,3 +125,12 @@ def returnCharacter(byteH, byteL):
         return lookupTable[dictValue]
     else:
         return str(hex(dictValue[0])), str(hex(dictValue[1]))
+
+def showLargeDigitData():
+    #parses out the 4 digit places larges on the display
+    for line in sampleSet:
+        print line[5], line[6], line[7]
+        print returnCharacter(line[4],line[5]), \
+	      returnCharacter(line[5],line[6]), \
+	      returnCharacter(line[6],line[7]), \
+	      returnCharacter(line[7],line[8])
