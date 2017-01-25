@@ -102,17 +102,20 @@ sampleSet = [
 #   7-Segment values are encoded in two bytes with the following mask:
 #   0x07 0xB8
 #
-#   Byte04 Byte05   Minutes Tens
-#   Byte05 Byte06   Minutes Ones
-#   Byte06 Byte07   Seconds Tens
-#   Byte07 Byte08   Seconds Ones
+#   Byte04 Byte05       Minutes Tens
+#   Byte05 Byte06       Minutes Ones
+#   Byte06 Byte07       Seconds Tens
+#   Byte07 Byte08       Seconds Ones
+#
+###########Tentatively Established########
+#
+#   Byte07 Mask 0x40    Time colon (likely single segment)
 #
 ###########Still Needs to Be Found:#######
 #
 #   Scan indicator (single segment)
 #   Time indicator (single segment)
 #   Distance indicator (sindle segment)
-#   Time colon (likely single segment)
 #   Calories indicator (single segment)
 #   Pulse indicator (single segment)
 #   RPM lable (single segment)
@@ -189,7 +192,10 @@ def filterOutKnown(samples=sampleSet):
         filtered = s
         for mask in knownMasks:
             alteredByte = int(filtered[mask[0]],16) & uint8(~mask[1])
-            print filtered[mask[0]], format(mask[1],'#04x'), format(alteredByte, '#04x')
+            #print filtered[mask[0]], format(mask[1],'#04x'), format(alteredByte, '#04x')
             filtered[mask[0]] = format(alteredByte, '#04x')
+        for idx in range(len(filtered)):
+            if filtered[idx] == '0x00':
+                filtered[idx] = '    '
         print filtered
         
