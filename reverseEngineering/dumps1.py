@@ -110,6 +110,9 @@ sampleSet = [
 ###########Tentatively Established########
 #
 #   Byte07 Mask 0x40    Time colon (likely single segment)
+#   Byte08 Byte09       Speed Hundreds
+#   Byte09 Byte10       Speed Tens
+#   Byte10 Byte11       Speed Ones
 #
 ###########Still Needs to Be Found:#######
 #
@@ -123,13 +126,11 @@ sampleSet = [
 #   Calories Tens
 #   Calories Ones
 #   Calories DP (single segment)
-#   (Is there a speed hundreds digit?)
-#   Speed Tens
-#   Speed Ones
 #   RPM Bar Graph
 #   RPM Target Graph
 #   Target Up (single segment)
 #   Target Down (single segment)
+#
 ###########End Master List################
 
 def returnCharacter(byteH, byteL):
@@ -163,17 +164,22 @@ def returnCharacter(byteH, byteL):
     else:
         return str(hex(dictValue[0])), str(hex(dictValue[1]))
 
-def parseKnownData():
+def parseKnownData(showRawLine=True):
     #parses out the known data from the display
     for line in sampleSet:
         colon = ' '
         if (int(line[07],16) & 0x40): colon = ':'
-        print line
-        print returnCharacter(line[4],line[5]), \
+        if showRawLine: print line
+        print "Time:", \
+              returnCharacter(line[4],line[5]), \
 	      returnCharacter(line[5],line[6]), \
 	      colon, \
 	      returnCharacter(line[6],line[7]), \
-	      returnCharacter(line[7],line[8])
+	      returnCharacter(line[7],line[8]), \
+	      "Speed:", \
+	      returnCharacter(line[8],line[9]), \
+	      returnCharacter(line[9],line[10]), \
+	      returnCharacter(line[10],line[11])
 
 def filterOutKnown(samples=sampleSet):
     #As I figure stuff out I add mask here
@@ -189,6 +195,9 @@ def filterOutKnown(samples=sampleSet):
         (6,0x07),(7,0xB8),  #Big seconds tens
         (7,0x07),(8,0xB8),  #Big meconds ones
         (7,0x40)            #Time colon
+        (8,0x07),(9,0xB8),  #Speed hundreds
+        (9,0x07),(10,0xB8),  #Speed tens 
+        (10,0x07),(11,0xB8),  #Speed ones
         ]
         
 
