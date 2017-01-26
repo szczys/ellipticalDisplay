@@ -194,7 +194,7 @@ def filterOutKnown(samples=sampleSet):
         (5,0x07),(6,0xB8),  #Big minutes ones
         (6,0x07),(7,0xB8),  #Big seconds tens
         (7,0x07),(8,0xB8),  #Big meconds ones
-        (7,0x40)            #Time colon
+        (7,0x40),           #Time colon
         (8,0x07),(9,0xB8),  #Speed hundreds
         (9,0x07),(10,0xB8),  #Speed tens 
         (10,0x07),(11,0xB8),  #Speed ones
