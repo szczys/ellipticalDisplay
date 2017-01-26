@@ -121,7 +121,7 @@ sampleSet = [
 #   Target Up (single segment)
 #   Target Down (single segment)
 #   RPM label (single segment)
-#   Scan indicator (single segment)
+#   Byte05 Mask 0x40    Scan indicator (single segment)
 #   Time indicator (single segment)
 #   Distance indicator (sindle segment)
 #
@@ -205,7 +205,7 @@ def filterOutKnown(samples=sampleSet):
         
 
     for s in samples:
-        filtered = s
+        filtered = list(s)
         for mask in knownMasks:
             alteredByte = int(filtered[mask[0]],16) & uint8(~mask[1])
             #print filtered[mask[0]], format(mask[1],'#04x'), format(alteredByte, '#04x')
