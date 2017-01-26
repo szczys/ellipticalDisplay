@@ -114,22 +114,25 @@ sampleSet = [
 #   Byte09 Byte10       Speed Tens
 #   Byte10 Byte11       Speed Ones
 #
-###########Still Needs to Be Found:#######
+###########From this sample set###########
 #
-#   Scan indicator (single segment)
-#   Time indicator (single segment)
-#   Distance indicator (sindle segment)
-#   Calories indicator (single segment)
-#   Pulse indicator (single segment)
-#   RPM lable (single segment)
-#   Calories Hundreds
-#   Calories Tens
-#   Calories Ones
-#   Calories DP (single segment)
 #   RPM Bar Graph
 #   RPM Target Graph
 #   Target Up (single segment)
 #   Target Down (single segment)
+#   RPM label (single segment)
+#   Scan indicator (single segment)
+#   Time indicator (single segment)
+#   Distance indicator (sindle segment)
+#
+###########Still Needs to Be Found:#######
+#
+#   Calories indicator (single segment)
+#   Pulse indicator (single segment)
+#   Calories Hundreds
+#   Calories Tens
+#   Calories Ones
+#   Calories DP (single segment)
 #
 ###########End Master List################
 
