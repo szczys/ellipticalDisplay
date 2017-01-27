@@ -145,7 +145,8 @@ def loadExternalSet(rawDataFile):
 ###########Still Needs to Be Found:#######
 #
 #   Byte04 Mask 0x40    Calories indicator (single segment)
-#   Pulse indicator (single segment)
+#   Byte04 Mask 0x10    Pulse indicator (single segment)
+#   Byte03 Mask 0x04    Heart Icon
 #   Byte02 Mask 0x04    Calories DP (single segment)
 #
 ###########End Master List################
@@ -162,18 +163,19 @@ def returnCharacter(byteH, byteL):
     dictValue = (filteredH,filteredL)
 
     lookupTable = {
-        (7,168):'0', #0x07 0xA8
-        (0,40):'1', #0x00 0x28
-        (6,152):'2', #0x06 0x98
-        (4,184):'3', #0x04 0xB8
-        (1,56):'4', #0x01 0x38
-        (5,176):'5', #0x05 0xB0
-        (7,176):'6', #0x07 0xB0
-        (0,168):'7', #0x00 0xA8
-        (7,184):'8', #0x07 0xB8
-        (5,184):'9', #0x05 0xB8
-        (3,152):'P', #0x03 0x98
-        (0,0):' ', #0x00 0x00
+        (7,168):'0',    #0x07 0xA8
+        (0,40):'1',     #0x00 0x28
+        (6,152):'2',    #0x06 0x98
+        (4,184):'3',    #0x04 0xB8
+        (1,56):'4',     #0x01 0x38
+        (5,176):'5',    #0x05 0xB0
+        (7,176):'6',    #0x07 0xB0
+        (0,168):'7',    #0x00 0xA8
+        (7,184):'8',    #0x07 0xB8
+        (5,184):'9',    #0x05 0xB8
+        (3,152):'P',    #0x03 0x98
+        (0,16):'-',     #0x00 0x10  used when reading pulse
+        (0,0):' ',      #0x00 0x00
         }
 
     if dictValue in lookupTable.keys():
@@ -212,7 +214,7 @@ def countOnes(inByte):
 
 def parseKnownData(showRawLine=True):
     #parses out the known data from the display
-    for line in sampleSet:
+    for idx,line in enumerate(sampleSet):
         colon = ' '
         rpm = '    '
         scan = '    '
@@ -221,9 +223,11 @@ def parseKnownData(showRawLine=True):
         calories = '    '
         calDP = ' '
         pulse = '    '
+        heart = '  '
         if (int(line[4],16) & 0x40): calories = 'Cal:'      #Preload calories
         if (int(line[2],16) & 0x04): calDP = '.'            #Preload calories decimal point
-        #if (int(line[5],16) & 0x40): pulse = 'Pul:'         #TODO: Preload pulse
+        if (int(line[4],16) & 0x10): pulse = 'Pul:'         #Preload pulse
+        if (int(line[3],16) & 0x04): heart = '<3'           #Preload heart icon
         if (int(line[5],16) & 0x40): scan = 'Scan'          #Preload scan
         if (int(line[12],16) & 0x20): timeDist = 'Time:'    #Preload time
         if (int(line[12],16) & 0x40): timeDist = 'Dist:'    #Preload dist
@@ -245,12 +249,14 @@ def parseKnownData(showRawLine=True):
         speedBar = decodeSpeedBar(line[13],line[14],line[15],'0x00')    #We will never get the last byte in test data because it's only 5 bits (microcontroller should get it though)
         
         if showRawLine: print line
-        print pulse, \
+        print str(idx).rjust(4), \
+              pulse, \
               calories, \
               returnCharacter(pulseH[0], pulseH[1]), \
               returnCharacter(pulseT[0], pulseT[1]), \
               calDP, \
               returnCharacter(pulseO[0], pulseO[1]), \
+              heart, \
               scan, \
               timeDist, \
               returnCharacter(line[4],line[5]), \
@@ -271,7 +277,7 @@ def parseKnownData(showRawLine=True):
 	      
 	      
 
-def filterOutKnown(samples=sampleSet):
+def filterOutKnown(samples):
     #As I figure stuff out I add mask here
     #This will print out the samples without known data
     #what's left here needs to be figured out.
@@ -305,7 +311,7 @@ def filterOutKnown(samples=sampleSet):
         ]
             
 
-    for s in samples:
+    for samNum,s in enumerate(samples):
         filtered = list(s)
         for mask in knownMasks:
             alteredByte = int(filtered[mask[0]],16) & uint8(~mask[1])
@@ -314,5 +320,5 @@ def filterOutKnown(samples=sampleSet):
         for idx in range(len(filtered)):
             if filtered[idx] == '0x00':
                 filtered[idx] = '    '
-        print filtered
+        print str(samNum).rjust(4), filtered
         
