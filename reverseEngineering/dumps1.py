@@ -113,26 +113,25 @@ sampleSet = [
 #   Byte08 Byte09       Speed Hundreds
 #   Byte09 Byte10       Speed Tens
 #   Byte10 Byte11       Speed Ones
-#
-###########From this sample set###########
-#
-#   RPM Bar Graph
-#   RPM Target Graph
-#   Target Up (single segment)
-#   Target Down (single segment)
-#   RPM label (single segment)
+#   Byte13 Mask 0x07 Byte14 Mask 0xFF Byte15 Mask 0x80      RPM Bar Graph
+#   Byte15 Mask 0x7F (!! missing 5 bits from sniffed data)  RPM Target Graph
+#   Byte13 Mask 0x40    Target Up (single segment)
+#   Byte12 Mask 0x80    Target Down (single segment)
+#   Byte09 Mask 0x40    RPM label (single segment)
 #   Byte05 Mask 0x40    Scan indicator (single segment)
-#   Time indicator (single segment)
-#   Distance indicator (sindle segment)
+#   Byte12 Mask 0x20    Time indicator (single segment)
+#   Byte12 Mask 0x40    Distance indicator (single segment)
+#
+#   ###Special: just like other digits but shifted by one nibble
+#   Byte01 plus upper nibble Byte02 Calories Hundreds
+#   Byte02 plus upper nibble Byte03 Calories Tens
+#   Byte03 plus upper nibble Byte04 Calories Ones
 #
 ###########Still Needs to Be Found:#######
 #
-#   Calories indicator (single segment)
+#   Byte04 Mask 0x40    Calories indicator (single segment)
 #   Pulse indicator (single segment)
-#   Calories Hundreds
-#   Calories Tens
-#   Calories Ones
-#   Calories DP (single segment)
+#   Byte02 Mask 0x04    Calories DP (single segment)
 #
 ###########End Master List################
 
@@ -167,22 +166,95 @@ def returnCharacter(byteH, byteL):
     else:
         return str(hex(dictValue[0])), str(hex(dictValue[1]))
 
+def nibbleShifter(byteH, byteL):
+    #returns tuple of bytes with nibbles shifted left by 1
+    shiftedH = int(byteH,16)>>4
+    shiftedL = ((int(byteH,16) & 0x0F)<<4) | int(byteL,16)>>4
+    return (format(shiftedH,'#04x'), format(shiftedL, '#04x'))
+
+def decodeSpeedBar(byte1, byte2, byte3, byte4):
+    #inList must have 4 bytes
+
+    #count the number of segments that are lit for each speed bar
+    actual = 0
+    goal = 0
+
+    actual += countOnes(int(byte1,16) & 0x07)
+    actual += countOnes(int(byte2,16))
+    actual += countOnes(int(byte3,16) & 0x80)
+    goal += countOnes(int(byte3,16) & 0x7F)
+    goal += countOnes(int(byte4,16) & 0xF8)
+
+    return (actual, goal)
+    
+def countOnes(inByte):
+    count = 0
+    for i in range(8):
+        if inByte & 1<<i:
+            count += 1
+    return count
+
+
 def parseKnownData(showRawLine=True):
     #parses out the known data from the display
     for line in sampleSet:
         colon = ' '
-        if (int(line[07],16) & 0x40): colon = ':'
+        rpm = '    '
+        scan = '    '
+        timeDist = '     '
+        upDnInd = '  '
+        calories = '    '
+        calDP = ' '
+        pulse = '    '
+        if (int(line[4],16) & 0x40): calories = 'Cal:'      #Preload calories
+        if (int(line[2],16) & 0x04): calDP = '.'            #Preload calories decimal point
+        #if (int(line[5],16) & 0x40): pulse = 'Pul:'         #TODO: Preload pulse
+        if (int(line[5],16) & 0x40): scan = 'Scan'          #Preload scan
+        if (int(line[12],16) & 0x20): timeDist = 'Time:'    #Preload time
+        if (int(line[12],16) & 0x40): timeDist = 'Dist:'    #Preload dist
+        if (int(line[7],16) & 0x40): colon = ':'            #Preload colon
+        if (int(line[9],16) & 0x40): rpm = 'rpm:'           #Preload rpm
+
+        tmpUp = int(line[13],16) & 0x40                     #up indicator
+        tmpDn = int(line[12],16) & 0x80                     #down indicator
+        if tmpUp: upDnInd = '/\\'
+        elif tmpDn: upDnInd = '\\/'
+        else: upDnInd = '  '
+
+        #These three digits are nibble shifted left compared to all others
+        #This intermediary step fixes that for prinout purposes
+        pulseH = nibbleShifter(line[1],line[2])
+        pulseT = nibbleShifter(line[2],line[3])
+        pulseO = nibbleShifter(line[3],line[4])
+
+        speedBar = decodeSpeedBar(line[13],line[14],line[15],'0x00')    #We will never get the last byte in test data because it's only 5 bits (microcontroller should get it though)
+        
         if showRawLine: print line
-        print "Time:", \
+        print pulse, \
+              calories, \
+              returnCharacter(pulseH[0], pulseH[1]), \
+              returnCharacter(pulseT[0], pulseT[1]), \
+              calDP, \
+              returnCharacter(pulseO[0], pulseO[1]), \
+              scan, \
+              timeDist, \
               returnCharacter(line[4],line[5]), \
 	      returnCharacter(line[5],line[6]), \
 	      colon, \
 	      returnCharacter(line[6],line[7]), \
 	      returnCharacter(line[7],line[8]), \
-	      "Speed:", \
+	      rpm, \
 	      returnCharacter(line[8],line[9]), \
 	      returnCharacter(line[9],line[10]), \
-	      returnCharacter(line[10],line[11])
+	      returnCharacter(line[10],line[11]), \
+	      upDnInd, \
+	      "Current:", \
+	      str(speedBar[0]).rjust(2), \
+	      "Goal:", \
+	      str(speedBar[1]).rjust(2)
+	      
+	      
+	      
 
 def filterOutKnown(samples=sampleSet):
     #As I figure stuff out I add mask here
@@ -193,16 +265,28 @@ def filterOutKnown(samples=sampleSet):
     from numpy import uint8
     
     knownMasks = [
-        (4,0x07),(5,0xB8),  #Big minutes tens
-        (5,0x07),(6,0xB8),  #Big minutes ones
-        (6,0x07),(7,0xB8),  #Big seconds tens
-        (7,0x07),(8,0xB8),  #Big meconds ones
-        (7,0x40),           #Time colon
-        (8,0x07),(9,0xB8),  #Speed hundreds
-        (9,0x07),(10,0xB8),  #Speed tens 
-        (10,0x07),(11,0xB8),  #Speed ones
+        (1,0x7B),(2,0x80),      #Pulse Hundreds
+        (2,0x7B),(3,0x80),      #Pulse Tens
+        (3,0x7B),(4,0x80),      #Pulse Ones
+        (4,0x07),(5,0xB8),      #Big minutes tens
+        (5,0x07),(6,0xB8),      #Big minutes ones
+        (6,0x07),(7,0xB8),      #Big seconds tens
+        (7,0x07),(8,0xB8),      #Big meconds ones
+        (7,0x40),               #Time colon
+        (8,0x07),(9,0xB8),      #Speed hundreds
+        (9,0x07),(10,0xB8),     #Speed tens 
+        (10,0x07),(11,0xB8),    #Speed ones
+        (9,0x40),               #RPM Indicator
+        (5,0x40),               #Scan Indicator
+        (13,0x07),(14,0xFF),(15,0x80),  #RPM Bar Graph
+        (15,0x7F),              # (!! missing 5 bits from sniffed data)  RPM Target Graph
+        (13,0x40),              #Target Up (single segment)
+        (12,0x80),              #Target Down (single segment)
+        (9,0x40),               #RPM label (single segment)
+        (12,0x20),              #Time indicator (single segment)
+        (12,0x40)               #Distance indicator (single segment)
         ]
-        
+            
 
     for s in samples:
         filtered = list(s)
