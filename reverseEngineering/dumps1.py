@@ -284,7 +284,9 @@ def filterOutKnown(samples=sampleSet):
         (12,0x80),              #Target Down (single segment)
         (9,0x40),               #RPM label (single segment)
         (12,0x20),              #Time indicator (single segment)
-        (12,0x40)               #Distance indicator (single segment)
+        (12,0x40),              #Distance indicator (single segment)
+        (4,0x40),               #Calories indicator (single segment)
+        (2,0x04)                #Calories DP (single segment)
         ]
             
 
