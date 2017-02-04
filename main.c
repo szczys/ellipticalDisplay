@@ -13,6 +13,9 @@
 #include <avr/pgmspace.h>
 #include <util/delay.h>
 
+#include "KS0108.h"
+
+
 #define     BUFLEN      20   //Message length plus terminating character?
 volatile uint8_t SShighFlag = 1;
 volatile uint8_t bufferIDX = 0;
@@ -35,14 +38,7 @@ int main(void);
 /**************** End Prototypes *********************************/
 
 void init_IO(void){
-    //7-Seg Displays
-    DDRB |= PORTB_MASK;
-    DDRC |= PORTC_MASK;
-    DDRD |= PORTD_MASK;
-    
-    PORTB |= PORTB_MASK;
-    PORTC |= PORTC_MASK;
-    PORTD |= PORTD_MASK;
+
 }
 
 void decodeDigit(uint8_t byteH, uint8_t byteL, uint8_t decPlace) {
@@ -94,6 +90,10 @@ int main(void)
 {
     uint8_t validMsg[BUFLEN] = { 0 };
     validMsg[0] = 0xA0;
+    
+    GLCD_Initalize();
+    GLCD_ClearScreen();
+    GLCD_WriteString("Hello World");
     
     init_IO();
     init_SPI();
